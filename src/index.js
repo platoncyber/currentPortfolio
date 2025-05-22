@@ -2,7 +2,7 @@ var options = {
     chart: {
           type: 'donut'
     },
-    series: [8, 9, 9, 2],
+    series: [10, 10, 7, 1],
     labels: ['CSS3', 'HTML5', 'INDEX.JS', 'REACT.JS'],
   
   }
@@ -69,11 +69,11 @@ const data = [
       repo:'',
       img:'./img/i.webp'
      },
-      { name: 'coffee machine',
-        title:'Прототип Хамстер комбат таем и получаем коины',
+      { name: 'live search',
+        title:'Прототип live search системы',
         link:'',
         repo:'',
-        img:'./img/dragon.png'
+        img:'./img/lupa.png'
       }
 
 ];

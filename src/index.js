@@ -7,9 +7,27 @@ var options = {
   
   }
 
+  var options2 = {
+          series: [{
+          name: 'Series 1',
+          data: [80, 50, 30, 40],
+        }],
+          chart: {
+          height: 350,
+          type: 'radar',
+        },
+
+        yaxis: {
+          stepSize: 20
+        },
+        xaxis: {
+          categories:  ['CSS3', 'HTML5', 'INDEX.JS', 'REACT.JS']
+        }
+        };
 
 
-var chart = new ApexCharts(document.querySelector("#chart"), options);
+
+var chart = new ApexCharts(document.querySelector("#chart"), options2);
 
 chart.render();
 

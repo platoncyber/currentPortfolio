@@ -12,7 +12,21 @@
     <link rel="stylesheet" href="./style/style.css">
     <script src="./src/index.js " defer></script>
     <script src="./bot/bot.js" defer></script>
+    <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
 
+    <style>
+          #container {
+            width: 100vw;
+            height: 100vh;
+            opacity: 0.5;
+            position: absolute;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+    </style>
 </head>
 <body>
 
@@ -45,10 +59,9 @@
                 <h2>Platon</h2>
                 <p id="main-view_p">SOFTWARE DEVELOPER | WEB DESIGNER</p>
 
-                <div class="design-container">
-                    <div class="design-item"></div>
-                    <div style="animation-delay: 3s;" class="design-item"></div>
-               </div>
+                 <div id="container">
+                    <div class="loading" id="loading">Loading 3D Scene...</div>
+                  </div> 
 
                <button id="slide-down"> 
                 <a href="#card-1"><img src="./img/arrow-down.png" alt=""></a>
@@ -232,6 +245,206 @@
         </div>
 
     </footer>
+    <script>
+          // Check if Three.js loaded
+        if (typeof THREE === 'undefined') {
+            document.getElementById('loading').innerHTML = '<div class="error">Error: Three.js failed to load.<br>Please check your internet connection.</div>';
+        } else {
+            initScene();
+        }
+
+        function initScene() {
+            try {
+                // Global variables
+                let scene, camera, renderer, sphere, codeRing = [];
+                let sphereGroup, ringGroup;
+                
+                // Code elements for display
+                const codeElements = [
+                    'function()', 'const x =', 'if (true)', 'for (i=0)', 'return;', 
+                    'class App', 'import {', '=> {}', 'async', 'console.log',
+                    'useState', 'useEffect', 'onClick', 'props', 'state',
+                    'try/catch', 'Promise', 'fetch()', 'JSON', 'map()',
+                    'filter()', 'reduce()', 'forEach()', 'addEventListener', 'querySelector'
+                ];
+
+                function init() {
+                    // Create scene
+                    scene = new THREE.Scene();
+                    
+                    // Create camera
+                    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    camera.position.z = 8;
+                    
+                    // Create renderer
+                    renderer = new THREE.WebGLRenderer({ antialias: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setClearColor(0x000000);
+                    
+                    const container = document.getElementById('container');
+                    container.appendChild(renderer.domElement);
+                    
+                    // Hide loading
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    createSphere();
+                    createCodeRing();
+                    setupLighting();
+                    
+                    animate();
+                }
+
+                function createSphere() {
+                    sphereGroup = new THREE.Group();
+                    
+                    // Main sphere (shell)
+                    const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
+                    const sphereMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                    sphereGroup.add(sphere);
+                    
+                    // Inner sphere (core)
+                    const coreGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+                    const coreMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.3
+                    });
+                    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+                    sphereGroup.add(core);
+                    
+                    // Additional rings inside sphere
+                    for (let i = 0; i < 3; i++) {
+                        const ringGeometry = new THREE.RingGeometry(0.5 + i * 0.3, 0.6 + i * 0.3, 16);
+                        const ringMaterial = new THREE.MeshBasicMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 0.4,
+                            side: THREE.DoubleSide
+                        });
+                        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                        ring.rotation.x = Math.PI / 2;
+                        ring.rotation.z = i * Math.PI / 3;
+                        sphereGroup.add(ring);
+                    }
+                    
+                    scene.add(sphereGroup);
+                }
+
+                function createCodeRing() {
+                    ringGroup = new THREE.Group();
+                    
+                    const radius = 4;
+                    const elementCount = codeElements.length;
+                    
+                    for (let i = 0; i < elementCount; i++) {
+                        const angle = (i / elementCount) * Math.PI * 2;
+                        
+                        // Create text texture
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 256;
+                        canvas.height = 64;
+                        
+                        // Clear canvas
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw text
+                        context.fillStyle = 'white';
+                        context.font = 'bold 20px Courier New';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillText(codeElements[i], canvas.width / 2, canvas.height / 2);
+                        
+                        const texture = new THREE.CanvasTexture(canvas);
+                        texture.needsUpdate = true;
+                        
+                        const material = new THREE.MeshBasicMaterial({
+                            map: texture,
+                            transparent: true,
+                            opacity: 0.9
+                        });
+                        
+                        const geometry = new THREE.PlaneGeometry(2, 0.5);
+                        const textMesh = new THREE.Mesh(geometry, material);
+                        
+                        // Position elements in circle
+                        textMesh.position.x = Math.cos(angle) * radius;
+                        textMesh.position.z = Math.sin(angle) * radius;
+                        textMesh.position.y = (Math.random() - 0.5) * 2;
+                        
+                        // Rotate towards center
+                        textMesh.lookAt(0, textMesh.position.y, 0);
+                        
+                        // Add random tilt
+                        textMesh.rotation.x += (Math.random() - 0.5) * 0.5;
+                        textMesh.rotation.z += (Math.random() - 0.5) * 0.5;
+                        
+                        codeRing.push(textMesh);
+                        ringGroup.add(textMesh);
+                    }
+                    
+                    scene.add(ringGroup);
+                }
+
+                function setupLighting() {
+                    // Ambient light
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                    scene.add(ambientLight);
+                    
+                    // Directional light
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directionalLight.position.set(5, 5, 5);
+                    scene.add(directionalLight);
+                }
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    
+                    // Rotate sphere
+                    if (sphereGroup) {
+                        sphereGroup.rotation.y += 0.005;
+                        sphereGroup.rotation.x += 0.002;
+                    }
+                    
+                    // Rotate code ring
+                    if (ringGroup) {
+                        ringGroup.rotation.y -= 0.008;
+                    }
+                    
+                    // Individual rotation of code elements
+                    codeRing.forEach((element, index) => {
+                        element.rotation.y += 0.01 + (index * 0.001);
+                        element.position.y += Math.sin(Date.now() * 0.001 + index) * 0.002;
+                    });
+                    
+                    renderer.render(scene, camera);
+                }
+
+                // Handle window resize
+                function onWindowResize() {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+
+                window.addEventListener('resize', onWindowResize);
+                
+                // Start the application
+                init();
+
+            } catch (error) {
+                console.error('Error initializing 3D scene:', error);
+                document.getElementById('loading').innerHTML = '<div class="error">Error loading 3D scene.<br>Please refresh the page.</div>';
+            }
+        }
+    </script>
     <script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </body>
